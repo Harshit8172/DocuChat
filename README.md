@@ -99,4 +99,3 @@ You will need three free API keys to use the application. Every user on your dep
    - Go to [Hugging Face](https://huggingface.co/)
    - Create an account, go to **Settings** -> **Access Tokens**.
    - Create a new token with *Read* permissions.
-# DocuChat
