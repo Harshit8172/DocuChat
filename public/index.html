@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuChat AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',
+                        secondary: '#1e293b',
+                        accent: '#0ea5e9'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex overflow-hidden font-sans">
+    
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center transition-opacity duration-300">
+        <div class="bg-gray-800 rounded-2xl w-full max-w-md p-8 shadow-2xl border border-gray-700">
+            <h2 class="text-3xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-6" id="authTitle">Login</h2>
+            
+            <form id="authForm" class="space-y-4">
+                <div id="authNameFields" class="hidden flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">First Name</label>
+                        <input type="text" id="authFirstName" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Last Name</label>
+                        <input type="text" id="authLastName" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Email ID</label>
+                    <input type="email" id="authEmail" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <input type="password" id="authPassword" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" required>
+                </div>
+                <div id="authError" class="text-red-400 text-sm hidden"></div>
+                <button type="submit" class="w-full bg-primary hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition-colors mt-4 shadow-lg shadow-primary/30" id="authSubmitBtn">
+                    Login
+                </button>
+            </form>
+            
+            <p class="text-center text-sm text-gray-400 mt-6">
+                <span id="authToggleText">Don't have an account?</span> 
+                <button id="authToggleBtn" class="text-primary hover:text-indigo-400 font-medium">Sign Up</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Sidebar / File Explorer -->
+    <aside class="w-80 bg-gray-800 border-r border-gray-700 flex flex-col transition-all duration-300 z-20 shadow-xl">
+        <div class="p-6 border-b border-gray-700 flex items-center justify-between bg-gray-800/95 sticky top-0">
+            <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-primary"></i> DocuChat
+            </h1>
+            <div class="flex gap-3">
+                <button id="newFolderBtn" class="text-gray-400 hover:text-white transition-colors" title="New Folder">
+                    <i class="fa-solid fa-folder-plus"></i>
+                </button>
+                <button id="settingsBtn" class="text-gray-400 hover:text-white transition-colors" title="Settings">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button id="logoutBtn" class="text-red-400 hover:text-red-300 transition-colors" title="Logout">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xs uppercase text-gray-400 font-bold tracking-wider">File Explorer</h2>
+                <span class="text-xs text-gray-500" title="Check boxes to filter AI context">Context Filter</span>
+            </div>
+
+            <!-- Root Upload Area -->
+            <div id="rootUploadArea" class="border-2 border-dashed border-gray-600 rounded-lg p-3 text-center hover:border-primary hover:bg-gray-700/50 transition-all cursor-pointer group mb-4">
+                <i class="fa-solid fa-cloud-arrow-up text-xl text-gray-500 group-hover:text-primary mb-1 transition-colors"></i>
+                <p class="text-xs text-gray-400">Upload to Root (Max 4.5MB)</p>
+                <input type="file" id="rootFileInput" class="hidden" accept=".pdf,.docx,.csv,.txt">
+            </div>
+
+            <!-- File Tree Container -->
+            <div id="fileTree" class="space-y-1 text-sm text-gray-300">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+        
+        <div id="uploadStatus" class="p-4 border-t border-gray-700 hidden bg-gray-800">
+            <div class="flex items-center gap-3 text-sm">
+                <i class="fa-solid fa-circle-notch fa-spin text-primary" id="uploadSpinner"></i>
+                <span id="uploadStatusText" class="text-gray-300 truncate">Processing...</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col relative bg-gray-900">
+        <!-- Header -->
+        <header class="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-gray-900/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-4">
+                <h2 class="text-lg font-medium text-gray-200">Chat Assistant</h2>
+                <div class="text-sm text-gray-400 px-3 py-1 bg-gray-800/50 rounded-lg border border-gray-700" id="userNameDisplay">
+                    <!-- User name will be displayed here -->
+                </div>
+            </div>
+            <div class="text-xs text-primary font-medium px-3 py-1 bg-primary/10 rounded-full border border-primary/20" id="contextIndicator">
+                Global Context
+            </div>
+        </header>
+
+        <!-- Chat Messages -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth pb-32 custom-scrollbar">
+            <div class="flex gap-4 max-w-3xl mx-auto w-full">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 shadow-lg">
+                    <i class="fa-solid fa-robot text-white"></i>
+                </div>
+                <div class="flex-1 bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-700 text-gray-200">
+                    <p>Welcome to DocuChat! Please ensure your API keys are configured in Settings.</p>
+                    <p class="mt-2 text-sm text-gray-400">Select specific folders or files in the sidebar to restrict my knowledge to those exact documents!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-900 via-gray-900 to-transparent">
+            <div class="max-w-3xl mx-auto relative group">
+                <textarea id="messageInput" rows="1" class="w-full bg-gray-800 border border-gray-600 rounded-2xl py-4 pl-5 pr-14 text-white placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none overflow-hidden transition-all shadow-lg custom-scrollbar" placeholder="Ask about your selected documents..."></textarea>
+                <button id="sendBtn" class="absolute right-3 bottom-3 w-10 h-10 bg-primary hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-700 transform transition-all scale-95 opacity-0" id="settingsContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Configuration</h3>
+                <button id="closeSettings" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">OpenRouter API Key</label>
+                    <input type="password" id="openrouterKey" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" placeholder="sk-or-v1-...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">OpenRouter Model</label>
+                    <input type="text" id="openrouterModel" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" value="openai/gpt-4o">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Hugging Face API Key</label>
+                    <input type="password" id="hfKey" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" placeholder="hf_...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Pinecone API Key</label>
+                    <input type="password" id="pineconeKey" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" placeholder="pcsk_...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Pinecone Index Name</label>
+                    <input type="text" id="pineconeIndex" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none" placeholder="my-index">
+                </div>
+                <button id="saveSettings" class="w-full bg-primary hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition-colors mt-6">
+                    Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div id="folderModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-gray-700">
+            <h3 class="text-xl font-bold text-white mb-4">Create Folder</h3>
+            <input type="text" id="folderNameInput" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-primary focus:outline-none mb-4" placeholder="Folder Name">
+            <div class="flex gap-3">
+                <button id="cancelFolderBtn" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors">Cancel</button>
+                <button id="createFolderSubmit" class="flex-1 bg-primary hover:bg-indigo-500 text-white py-2 rounded-lg transition-colors">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for folders -->
+    <input type="file" id="folderFileInput" class="hidden" accept=".pdf,.docx,.csv,.txt">
+
+    <script src="script.js"></script>
+</body>
+</html>
