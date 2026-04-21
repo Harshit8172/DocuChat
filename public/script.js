@@ -93,10 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) {
                 let errorMsg = 'Authentication failed';
                 try {
-                    const data = await res.json();
-                    errorMsg = data.detail || errorMsg;
+                    // Clone response before reading to avoid stream exhaustion
+                    const contentType = res.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await res.json();
+                        errorMsg = data.detail || errorMsg;
+                    }
                 } catch (err) {
-                    errorMsg = await res.text() || errorMsg;
+                    console.error('[AUTH] Error parsing error response:', err);
                 }
                 throw new Error(errorMsg);
             }
@@ -163,7 +167,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('[SETTINGS] Error:', res.status, res.statusText);
                 return;
             }
-            const data = await res.json();
+            
+            // Safely parse JSON only if response is ok and has content
+            let data;
+            try {
+                const text = await res.text();
+                if (text) {
+                    data = JSON.parse(text);
+                } else {
+                    console.error('[SETTINGS] Empty response body');
+                    return;
+                }
+            } catch (parseErr) {
+                console.error('[SETTINGS] Failed to parse response:', parseErr);
+                return;
+            }
+            
             document.getElementById('openrouterKey').value = data.openrouter_key || '';
             document.getElementById('openrouterModel').value = data.openrouter_model || 'openai/gpt-4o';
             document.getElementById('hfKey').value = data.hf_key || '';
