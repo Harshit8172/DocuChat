@@ -784,7 +784,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const first_name = authFirstName.value;
         const last_name = authLastName.value;
 
-        const endpoint = isLogin ? '/api/login' : '/api/signup';
+        // const endpoint = isLogin ? '/api/login' : '/api/signup';
+        const endpoint = isLogin 
+            ? `${API_BASE_URL}/api/login` 
+            : `${API_BASE_URL}/api/signup`;
         const payload = isLogin ? { email, password } : { email, password, first_name, last_name };
 
         try {
