@@ -16,12 +16,13 @@ import docx
 import pandas as pd
 import jwt
 
-# --- BCRYPT PASSLIB BUG FIX ---
-# Modern bcrypt removed __about__ which breaks passlib. We patch it here.
+# --- BCRYPT PASSLIB FIX ---
+# Ensure bcrypt __about__ is available for passlib compatibility
 import bcrypt
-class _BcryptAbout:
-    __version__ = "3.2.0"
-bcrypt.__about__ = _BcryptAbout
+if not hasattr(bcrypt, '__about__'):
+    class _BcryptAbout:
+        __version__ = "4.1.1"
+    bcrypt.__about__ = _BcryptAbout
 
 from passlib.context import CryptContext
 
