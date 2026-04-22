@@ -1,8 +1,21 @@
-# DocuChat AI - Full Stack Stateful RAG Chatbot
+# DocuChat AI - Document Intelligence Chatbot
 
-DocuChat AI is a fully stateful, multi-user Retrieval-Augmented Generation (RAG) chatbot. It supports secure user accounts, cloud-based credentials storage, folder/file management, and targeted document context filtering.
+A modern full-stack AI chatbot that allows users to upload documents and ask questions about their content. Built with FastAPI, Vue.js, Pinecone vector database, and OpenRouter LLM.
 
-Built with **Python FastAPI**, **Vanilla JS/HTML/CSS**, **Pinecone**, and **OpenRouter**, it is fully optimized to be deployed entirely for free on **Vercel**.
+**Live Demo**: https://docu-chat-seven.vercel.app
+
+---
+
+## ✨ Features
+
+- 🔐 **User Authentication** - Secure signup/login with JWT tokens
+- 📄 **Document Upload** - Support for PDF, DOCX, CSV, and TXT files
+- 🗂️ **File Organization** - Create folders and organize documents
+- 💬 **AI Chat** - Ask questions about your documents with context-aware responses
+- 🔑 **Secure API Key Management** - Store OpenRouter, Hugging Face, and Pinecone keys
+- 🗑️ **Delete Files/Folders** - Remove documents and folders anytime
+- 🎯 **Context Filtering** - Select specific files/folders for focused responses
+- 👤 **User Display** - Shows logged-in user name in header
 
 ---
 
@@ -49,37 +62,116 @@ For local development, the app automatically defaults to using a lightweight SQL
 
 ---
 
-## ☁️ How to Deploy on Vercel for Free
+## 🚀 Production Deployment (Vercel + Render)
 
-Because Vercel relies on Serverless Functions, any local files (like a SQLite `app.db` file) will be deleted every time the server goes to sleep. **To deploy to production, you MUST use a remote PostgreSQL database.**
+### Architecture: Vercel Frontend + Render Backend
 
-Here is the exact step-by-step guide:
+This setup separates frontend and backend for better scalability:
+- **Frontend**: Deployed on Vercel (free)
+- **Backend**: Deployed on Render (free tier available)
 
-### Step 1: Create a Free PostgreSQL Database
-1. Go to [Supabase](https://supabase.com/) and create a free account.
-2. Click **New Project** and create a new database (save your database password!).
-3. Once created, go to **Project Settings** -> **Database**.
-4. Scroll down to **Connection String** and click on **URI**.
-5. Copy the connection string. It will look like this:
-   `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-ID].supabase.co:5432/postgres`
+### Step 1: Deploy Backend on Render
 
-### Step 2: Push Your Code to GitHub
-1. Create a new empty repository on [GitHub](https://github.com/).
-2. Push your local `Chatbot` folder to this GitHub repository.
+1. **Create Render Account**
+   - Go to https://render.com and sign up (free tier available)
 
-### Step 3: Deploy to Vercel
-1. Go to [Vercel](https://vercel.com/) and create a free account.
-2. Click **Add New** -> **Project**.
-3. Import your new GitHub repository.
-4. Expand the **Environment Variables** section before clicking deploy! You must add two variables:
-   - **Key**: `DATABASE_URL`
-   - **Value**: `postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-ID].supabase.co:5432/postgres`
-   - *(Note: Replace `[YOUR-PASSWORD]` with your actual Supabase password)*
-   - **Key**: `SECRET_KEY`
-   - **Value**: *(Type a random long string of characters to secure your login tokens!)*
-5. Click **Deploy**.
+2. **Create Web Service**
+   - Click **New +** → **Web Service**
+   - Connect your GitHub repository
+   - Fill in these details:
+     - **Name**: `docuchat-backend`
+     - **Environment**: Python 3
+     - **Build Command**: `pip install -r requirements.txt`
+     - **Start Command**: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`
+     - **Plan**: Free (or paid for better uptime)
 
-Vercel will automatically detect `vercel.json`, install the packages from `requirements.txt` (including the required Postgres connector `psycopg2-binary`), and start your FastAPI server!
+3. **Add Environment Variables**
+   - In Render dashboard: **Environment**
+   - Add:
+     ```
+     SECRET_KEY=your-secure-random-key-here
+     ```
+   - Generate a secure key:
+     ```python
+     import secrets
+     print(secrets.token_urlsafe(32))
+     ```
+
+4. **Set Up Database (Optional)**
+   - For production, use PostgreSQL instead of SQLite
+   - Create PostgreSQL on Render or Supabase
+   - Add to environment variables:
+     ```
+     DATABASE_URL=postgresql://user:password@your-db.onrender.com/docuchat
+     ```
+
+5. **Get Backend URL**
+   - After deployment, you'll get a URL like:
+     ```
+     https://docuchat-backend.onrender.com
+     ```
+   - Save this for frontend configuration
+
+### Step 2: Update Frontend for Render Backend
+
+Before deploying frontend, update the API URL in `public/script.js`:
+
+Find all `fetch()` calls and add backend URL logic:
+
+```javascript
+// At the top of the file, after DOMContentLoaded
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://127.0.0.1:8000'
+  : 'https://your-render-backend-url.onrender.com';
+```
+
+Then update fetch calls like:
+```javascript
+// Old:
+const res = await fetch('/api/settings', { ... });
+
+// New:
+const res = await fetch(`${API_BASE_URL}/api/settings`, { ... });
+```
+
+Or update all references at once by searching for `/api/` and replacing with `${API_BASE_URL}/api/`
+
+### Step 3: Deploy Frontend on Vercel
+
+1. **Push Updated Code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Update API URL for Render backend"
+   git push origin main
+   ```
+
+2. **Create Vercel Account**
+   - Go to https://vercel.com and sign up with GitHub
+
+3. **Import Project**
+   - Click **Add New** → **Project**
+   - Select your DocuChat GitHub repository
+   - Click **Import**
+
+4. **Configure Build**
+   - **Build Command**: (leave empty)
+   - **Output Directory**: `public`
+   - **Install Command**: (leave empty)
+
+5. **Deploy**
+   - Click **Deploy**
+   - Your frontend will be live at `https://your-vercel-app.vercel.app`
+
+### Step 4: Test the Deployment
+
+1. Open your Vercel URL in browser
+2. Sign up with new account
+3. Go to Settings ⚙️
+4. Add API keys:
+   - OpenRouter Key
+   - Hugging Face Key
+   - Pinecone Key + Index Name
+5. Upload a document and test chat
 
 ---
 

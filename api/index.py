@@ -365,8 +365,29 @@ Answer:"""
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- Delete Endpoints ---
+@app.delete("/api/files/{file_id}")
+def delete_file(file_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    file = db.query(FileModel).filter(FileModel.id == file_id, FileModel.user_id == user.id).first()
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    db.delete(file)
+    db.commit()
+    return {"message": "File deleted successfully"}
+
+@app.delete("/api/folders/{folder_id}")
+def delete_folder(folder_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    folder = db.query(Folder).filter(Folder.id == folder_id, Folder.user_id == user.id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    db.delete(folder)
+    db.commit()
+    return {"message": "Folder deleted successfully"}
+
 app.mount("/", StaticFiles(directory="public", html=True), name="public")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

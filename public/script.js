@@ -257,14 +257,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="font-medium">${folder.name}</span>
                 `;
                 
-                const rightPart = document.createElement('button');
-                rightPart.className = 'text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity';
-                rightPart.innerHTML = '<i class="fa-solid fa-upload"></i>';
-                rightPart.title = "Upload file to folder";
-                rightPart.onclick = () => {
+                const rightPart = document.createElement('div');
+                rightPart.className = 'flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity';
+                
+                const uploadBtn = document.createElement('button');
+                uploadBtn.className = 'text-gray-500 hover:text-primary';
+                uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i>';
+                uploadBtn.title = "Upload file to folder";
+                uploadBtn.onclick = () => {
                     currentUploadFolderId = folder.id;
                     folderFileInput.click();
                 };
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-gray-500 hover:text-red-500';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                deleteBtn.title = "Delete folder";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete folder "${folder.name}"?`)) {
+                        deleteFolder(folder.id);
+                    }
+                };
+                
+                rightPart.appendChild(uploadBtn);
+                rightPart.appendChild(deleteBtn);
                 
                 header.appendChild(leftPart);
                 header.appendChild(rightPart);
@@ -277,12 +294,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     filesContainer.className = 'pl-6 space-y-1 mt-1 border-l border-gray-700 ml-3';
                     folderFiles.forEach(file => {
                         const fileDiv = document.createElement('div');
-                        fileDiv.className = 'flex items-center gap-2 py-1 px-2 hover:bg-gray-700/50 rounded-lg';
-                        fileDiv.innerHTML = `
+                        fileDiv.className = 'flex items-center justify-between gap-2 py-1 px-2 hover:bg-gray-700/50 rounded-lg group';
+                        
+                        const leftPart = document.createElement('div');
+                        leftPart.className = 'flex items-center gap-2 flex-1';
+                        leftPart.innerHTML = `
                             <input type="checkbox" class="file-check w-3.5 h-3.5 rounded border-gray-600 bg-gray-700 text-primary focus:ring-primary focus:ring-offset-gray-800" data-id="${file.id}" data-folder-id="${folder.id}">
                             <i class="fa-solid fa-file-lines text-gray-400"></i>
                             <span class="truncate text-xs text-gray-300">${file.filename}</span>
                         `;
+                        
+                        const deleteFileBtn = document.createElement('button');
+                        deleteFileBtn.className = 'text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto';
+                        deleteFileBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                        deleteFileBtn.title = "Delete file";
+                        deleteFileBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if (confirm(`Delete "${file.filename}"?`)) {
+                                deleteFile(file.id);
+                            }
+                        };
+                        
+                        fileDiv.appendChild(leftPart);
+                        fileDiv.appendChild(deleteFileBtn);
                         filesContainer.appendChild(fileDiv);
                     });
                     folderDiv.appendChild(filesContainer);
@@ -298,12 +332,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 rootDiv.className = 'mt-4 pt-2 border-t border-gray-700 space-y-1';
                 rootFiles.forEach(file => {
                     const fileDiv = document.createElement('div');
-                    fileDiv.className = 'flex items-center gap-2 py-1 px-2 hover:bg-gray-700/50 rounded-lg';
-                    fileDiv.innerHTML = `
+                    fileDiv.className = 'flex items-center justify-between gap-2 py-1 px-2 hover:bg-gray-700/50 rounded-lg group';
+                    
+                    const leftPart = document.createElement('div');
+                    leftPart.className = 'flex items-center gap-2 flex-1';
+                    leftPart.innerHTML = `
                         <input type="checkbox" class="file-check w-3.5 h-3.5 rounded border-gray-600 bg-gray-700 text-primary focus:ring-primary focus:ring-offset-gray-800" data-id="${file.id}">
                         <i class="fa-solid fa-file-lines text-gray-400"></i>
                         <span class="truncate text-xs text-gray-300">${file.filename}</span>
                     `;
+                    
+                    const deleteFileBtn = document.createElement('button');
+                    deleteFileBtn.className = 'text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto';
+                    deleteFileBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                    deleteFileBtn.title = "Delete file";
+                    deleteFileBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete "${file.filename}"?`)) {
+                            deleteFile(file.id);
+                        }
+                    };
+                    
+                    fileDiv.appendChild(leftPart);
+                    fileDiv.appendChild(deleteFileBtn);
                     rootDiv.appendChild(fileDiv);
                 });
                 fileTree.appendChild(rootDiv);
@@ -312,6 +363,41 @@ document.addEventListener('DOMContentLoaded', () => {
             attachCheckboxLogic();
 
         } catch(e) { console.error(e); }
+    }
+
+    // --- Delete Functions ---
+    async function deleteFile(fileId) {
+        try {
+            const res = await apiFetch(`/api/files/${fileId}`, {
+                method: 'DELETE'
+            });
+            
+            if (res.ok) {
+                renderTree();
+            } else {
+                const errorData = await res.json();
+                alert(`Error: ${errorData.detail || 'Failed to delete file'}`);
+            }
+        } catch(e) {
+            alert(`Error deleting file: ${e.message}`);
+        }
+    }
+
+    async function deleteFolder(folderId) {
+        try {
+            const res = await apiFetch(`/api/folders/${folderId}`, {
+                method: 'DELETE'
+            });
+            
+            if (res.ok) {
+                renderTree();
+            } else {
+                const errorData = await res.json();
+                alert(`Error: ${errorData.detail || 'Failed to delete folder'}`);
+            }
+        } catch(e) {
+            alert(`Error deleting folder: ${e.message}`);
+        }
     }
 
     function attachCheckboxLogic() {
