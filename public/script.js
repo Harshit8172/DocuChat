@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // API Configuration
+    const API_BASE_URL = 'https://docuchat-backend-gs7c.onrender.com';
+    
     let authToken = localStorage.getItem('authToken');
     let userName = localStorage.getItem('userName');
     
@@ -80,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const first_name = authFirstName.value;
         const last_name = authLastName.value;
         
-        const endpoint = isLogin ? '/api/login' : '/api/signup';
+        const endpoint = isLogin ? `${API_BASE_URL}/api/login` : `${API_BASE_URL}/api/signup`;
         const payload = isLogin ? { email, password } : { email, password, first_name, last_name };
         
         try {
@@ -129,10 +132,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function apiFetch(url, options = {}) {
         if (!options.headers) options.headers = {};
         options.headers['Authorization'] = `Bearer ${authToken}`;
-        const res = await fetch(url, options);
+        // Prepend API_BASE_URL if url is relative
+        const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+        const res = await fetch(fullUrl, options);
         // Only auto-logout on 401 for critical endpoints like /api/data or /api/chat
         // Don't auto-logout for settings as it may fail due to other reasons
-        if (res.status === 401 && (url.includes('/api/data') || url.includes('/api/chat') || url.includes('/api/upload'))) {
+        if (res.status === 401 && (fullUrl.includes('/api/data') || fullUrl.includes('/api/chat') || fullUrl.includes('/api/upload'))) {
             console.error('[AUTH] 401 on critical endpoint:', url);
             localStorage.removeItem('authToken');
             location.reload();
@@ -527,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (folderId) formData.append('folder_id', folderId);
 
         try {
-            const response = await fetch('/api/upload', {
+            const response = await fetch(`${API_BASE_URL}/api/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${authToken}` },
                 body: formData
@@ -619,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = getSelectedContext();
 
         try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
