@@ -777,54 +777,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // authForm.addEventListener('submit', async (e) => {
+    //     e.preventDefault();
+    //     const email = document.getElementById('authEmail').value;
+    //     const password = document.getElementById('authPassword').value;
+    //     const first_name = authFirstName.value;
+    //     const last_name = authLastName.value;
+
+    //     // const endpoint = isLogin ? '/api/login' : '/api/signup';
+    //     const endpoint = isLogin 
+    //         ? `${API_BASE_URL}/api/login` 
+    //         : `${API_BASE_URL}/api/signup`;
+    //     const payload = isLogin ? { email, password } : { email, password, first_name, last_name };
+
+    //     try {
+    //         const res = await fetch(endpoint, {
+    //             method: 'POST',
+    //             headers: { 'Content-Type': 'application/json' },
+    //             body: JSON.stringify(payload)
+    //         });
+
+    //         if (!res.ok) {
+    //             let errorMsg = 'Authentication failed';
+    //             try {
+    //                 // Clone response before reading to avoid stream exhaustion
+    //                 const contentType = res.headers.get('content-type');
+    //                 if (contentType && contentType.includes('application/json')) {
+    //                     const data = await res.json();
+    //                     errorMsg = data.detail || errorMsg;
+    //                 }
+    //             } catch (err) {
+    //                 console.error('[AUTH] Error parsing error response:', err);
+    //             }
+    //             throw new Error(errorMsg);
+    //         }
+
+    //         const data = await res.json();
+    //         authToken = data.token;
+    //         userName = data.name;
+    //         localStorage.setItem('authToken', authToken);
+    //         localStorage.setItem('userName', userName);
+    //         authModal.classList.add('hidden');
+    //         loadAppData();
+    //         displayUserName();
+    //     } catch (err) {
+    //         authError.textContent = err.message;
+    //         authError.classList.remove('hidden');
+    //     }
+    // });
+
+
     authForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('authEmail').value;
-        const password = document.getElementById('authPassword').value;
-        const first_name = authFirstName.value;
-        const last_name = authLastName.value;
+    e.preventDefault();
 
-        // const endpoint = isLogin ? '/api/login' : '/api/signup';
-        const endpoint = isLogin 
-            ? `${API_BASE_URL}/api/login` 
-            : `${API_BASE_URL}/api/signup`;
-        const payload = isLogin ? { email, password } : { email, password, first_name, last_name };
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const first_name = authFirstName.value.trim();
+    const last_name = authLastName.value.trim();
 
-        try {
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+    const endpoint = isLogin
+        ? `${API_BASE_URL}/api/login`
+        : `${API_BASE_URL}/api/signup`;
 
-            if (!res.ok) {
-                let errorMsg = 'Authentication failed';
-                try {
-                    // Clone response before reading to avoid stream exhaustion
-                    const contentType = res.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const data = await res.json();
-                        errorMsg = data.detail || errorMsg;
-                    }
-                } catch (err) {
-                    console.error('[AUTH] Error parsing error response:', err);
-                }
-                throw new Error(errorMsg);
-            }
+    const payload = isLogin
+        ? { email, password }
+        : { email, password, first_name, last_name };
 
-            const data = await res.json();
-            authToken = data.token;
-            userName = data.name;
-            localStorage.setItem('authToken', authToken);
-            localStorage.setItem('userName', userName);
-            authModal.classList.add('hidden');
-            loadAppData();
-            displayUserName();
-        } catch (err) {
-            authError.textContent = err.message;
-            authError.classList.remove('hidden');
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.detail || 'Authentication failed');
         }
-    });
+
+        authToken = data.token;
+        userName = data.name;
+
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userName', userName);
+
+        authModal.classList.add('hidden');
+
+        loadAppData();
+        displayUserName();
+
+    } catch (err) {
+        console.error('Login Error:', err);
+
+        authError.textContent = err.message || 'Something went wrong';
+        authError.classList.remove('hidden');
+    }
+});
 
     logoutBtn.addEventListener('click', () => {
         localStorage.removeItem('authToken');
